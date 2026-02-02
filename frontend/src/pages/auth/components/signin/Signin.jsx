@@ -1,0 +1,128 @@
+import { Avatar, Box, Button, CircularProgress, Container, CssBaseline, Grid, Typography, TextField, Link, Backdrop } from "@mui/material";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { signin } from "../../services/auth/auth";
+import { useSnackbar } from "notistack";
+import { isAdminLoggedIn, isCustomerLoggedIn, saveToken } from "../../../../utils/common";
+
+
+const defaultTheme = createTheme();
+
+export default function Signin() {
+  const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
+
+  const [formData, setFormdata] = useState({
+    email: "",
+    password: ""
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setFormdata({
+      ...formData,
+      [name]: value
+    });
+  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+ try {
+  const response = await signin(formData);
+  if (response.status === 200) {
+    console.log(response);
+    const token = response.data.token;
+    saveToken(token);
+
+    if (isAdminLoggedIn())
+      navigate('/admin/dashboard');
+    else if (isCustomerLoggedIn())
+      navigate('/customer/dashboard');
+  }
+}
+ catch (error) {
+    enqueueSnackbar('Invalid credentials!', { variant: 'error', autoHideDuration: 5000 });
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleSignUpClick = () => {
+  navigate('/register');
+};
+return (
+  <>
+    <ThemeProvider theme={defaultTheme}>
+      <Container component="main" maxWidth="xs">
+        <CssBaseline />
+        <Box
+          sx={{
+            marginTop: 7,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+            <LockOutlinedIcon />
+          </Avatar>
+          <Typography component="h1" variant="h5">
+            Sign In
+          </Typography>
+<Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
+  <TextField
+    required
+    fullWidth
+    id="email"
+    label="Email Address"
+    name="email"
+    autoComplete="email"
+    value={formData.email}
+    onChange={handleInputChange}
+  />
+
+  <TextField
+    required
+    fullWidth
+    name="password"
+    label="Password"
+    type="password"
+    id="password"
+    autoComplete="new-password"
+    value={formData.password}
+    onChange={handleInputChange}
+  />
+  <Button
+  type="submit"
+  fullWidth
+  variant="contained"
+  sx={{ mt: 3, mb: 2 }}
+  disabled={!formData.email || !formData.password}
+>
+  {loading ? <CircularProgress color="success" size={24} /> : 'Sign In'}
+</Button>
+
+<Grid container>
+  <Grid item>
+    <Link variant="body2" onClick={handleSignUpClick}>
+      Don't have an account? Sign Up
+    </Link>
+  </Grid>
+</Grid>
+</Box>
+</Box>
+</Container>
+</ThemeProvider>
+<Backdrop
+  sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+  open={loading}
+>
+  <CircularProgress color="success" />
+</Backdrop>
+</>
+)
+};
